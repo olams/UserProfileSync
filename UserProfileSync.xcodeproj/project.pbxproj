@@ -49,6 +49,7 @@
 		87AF557920A9824300B9A8B6 /* UserProfileSyncUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UserProfileSyncUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		87AF557D20A9824300B9A8B6 /* UserProfileSyncUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileSyncUITests.swift; sourceTree = "<group>"; };
 		87AF557F20A9824300B9A8B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		87E4A65F20A9A04600C9193F /* UserProfileSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = UserProfileSync.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +100,7 @@
 		87AF555920A9824100B9A8B6 /* UserProfileSync */ = {
 			isa = PBXGroup;
 			children = (
+				87E4A65F20A9A04600C9193F /* UserProfileSync.entitlements */,
 				87AF555A20A9824100B9A8B6 /* AppDelegate.swift */,
 				87AF555C20A9824100B9A8B6 /* ViewController.swift */,
 				87AF555E20A9824100B9A8B6 /* Main.storyboard */,
@@ -196,6 +198,11 @@
 				TargetAttributes = {
 					87AF555620A9824100B9A8B6 = {
 						CreatedOnToolsVersion = 9.3;
+						SystemCapabilities = {
+							com.apple.iCloud = {
+								enabled = 1;
+							};
+						};
 					};
 					87AF556D20A9824300B9A8B6 = {
 						CreatedOnToolsVersion = 9.3;
@@ -434,15 +441,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = DUSUU2GGN6;
+				CODE_SIGN_ENTITLEMENTS = UserProfileSync/UserProfileSync.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = KR36LV3S5F;
 				INFOPLIST_FILE = UserProfileSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = olamarius.UserProfileSync;
+				PRODUCT_BUNDLE_IDENTIFIER = no.sagliconsulting.UserProfileSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "789130f8-544d-4b5b-bfd6-c542bd2281e0";
+				PROVISIONING_PROFILE_SPECIFIER = UserProfileSyncProfileDev;
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -452,15 +462,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = DUSUU2GGN6;
+				CODE_SIGN_ENTITLEMENTS = UserProfileSync/UserProfileSync.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = UserProfileSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = olamarius.UserProfileSync;
+				PRODUCT_BUNDLE_IDENTIFIER = no.sagliconsulting.UserProfileSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
