@@ -48,11 +48,28 @@
                             <outlet property="delegate" destination="QGt-sM-Z4f" id="7kQ-hO-ItA"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" id="1WB-h5-c1t"/>
+                    <navigationItem key="navigationItem" id="1WB-h5-c1t">
+                        <barButtonItem key="rightBarButtonItem" style="plain" id="O9K-1E-pyW">
+                            <button key="customView" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="Yim-8e-GCb">
+                                <rect key="frame" x="276" y="7" width="83" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="New"/>
+                                <connections>
+                                    <action selector="newProfile:" destination="QGt-sM-Z4f" eventType="touchUpInside" id="eLu-Ms-wku"/>
+                                </connections>
+                            </button>
+                            <connections>
+                                <action selector="newProfile:" destination="QGt-sM-Z4f" id="AGs-XE-HmL"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="newProfileButton" destination="O9K-1E-pyW" id="aRr-9O-uaM"/>
+                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="IXh-mf-ZFK" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="788" y="-120"/>
+            <point key="canvasLocation" x="634" y="-123"/>
         </scene>
     </scenes>
 </document>
