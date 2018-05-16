@@ -6,6 +6,12 @@
 //  Copyright © 2018 Ola Marius Sagli. All rights reserved.
 //
 
+//
+// Things to read
+// 1. https://developer.apple.com/library/content/documentation/DataManagement/Conceptual/CloudKitQuickStart/MaintainingaLocalCacheofCloudKitRecords/MaintainingaLocalCacheofCloudKitRecords.html
+// 2: Watch this
+//    https://developer.apple.com/videos/play/wwdc2015/226/
+
 import UIKit
 
 class ViewController: UITableViewController {
@@ -60,6 +66,9 @@ class ViewController: UITableViewController {
 
     @IBAction func newProfile(_ sender: Any) {
         let profile = UserProfile(context: persistenceContainer.viewContext)
+        profile.objectID.uriRepresentation()
+        
+        
         let existingProfileNames = result.map { return $0.name }
         let availableProfileNames = self.profiles.filter {
             return existingProfileNames.contains($0) == false

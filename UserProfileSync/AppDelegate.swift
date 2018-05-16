@@ -9,13 +9,18 @@
 import UIKit
 import CoreData
 
+// Globals
+let NOTIFICATION_SYNC_POST = "syncPost"
+
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-
+    var syncManager:SyncManager?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        syncManager = SyncManager()
         // Override point for customization after application launch.
         return true
     }

@@ -15,6 +15,7 @@
 		87AF556820A9824300B9A8B6 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87AF556620A9824300B9A8B6 /* LaunchScreen.storyboard */; };
 		87AF557320A9824300B9A8B6 /* UserProfileSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF557220A9824300B9A8B6 /* UserProfileSyncTests.swift */; };
 		87AF557E20A9824300B9A8B6 /* UserProfileSyncUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF557D20A9824300B9A8B6 /* UserProfileSyncUITests.swift */; };
+		87BA984420AC4B6100630FCE /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BA984320AC4B6100630FCE /* SyncManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		87AF557920A9824300B9A8B6 /* UserProfileSyncUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UserProfileSyncUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		87AF557D20A9824300B9A8B6 /* UserProfileSyncUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileSyncUITests.swift; sourceTree = "<group>"; };
 		87AF557F20A9824300B9A8B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		87BA984320AC4B6100630FCE /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		87E4A65F20A9A04600C9193F /* UserProfileSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = UserProfileSync.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -108,6 +110,7 @@
 				87AF556620A9824300B9A8B6 /* LaunchScreen.storyboard */,
 				87AF556920A9824300B9A8B6 /* Info.plist */,
 				87AF556120A9824100B9A8B6 /* UserProfileSync.xcdatamodeld */,
+				87BA984320AC4B6100630FCE /* SyncManager.swift */,
 			);
 			path = UserProfileSync;
 			sourceTree = "<group>";
@@ -266,6 +269,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87BA984420AC4B6100630FCE /* SyncManager.swift in Sources */,
 				87AF555D20A9824100B9A8B6 /* ViewController.swift in Sources */,
 				87AF556320A9824100B9A8B6 /* UserProfileSync.xcdatamodeld in Sources */,
 				87AF555B20A9824100B9A8B6 /* AppDelegate.swift in Sources */,
