@@ -9,9 +9,6 @@
 import UIKit
 import CoreData
 
-// Globals
-let NOTIFICATION_SYNC_POST = "syncPost"
-
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -20,8 +17,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var syncManager:SyncManager?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        syncManager = SyncManager()
         // Override point for customization after application launch.
+        
+        
+
         return true
     }
 
@@ -58,7 +57,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
          application to it. This property is optional since there are legitimate
          error conditions that could cause the creation of the store to fail.
         */
+        let isRunningTests = NSClassFromString("XCTestCase") != nil
+
+        
         let container = NSPersistentContainer(name: "UserProfileSync")
+
+        if isRunningTests {
+            let description = NSPersistentStoreDescription()
+            description.type = NSInMemoryStoreType
+            description.shouldAddStoreAsynchronously = false // Make it simpler in test env
+            container.persistentStoreDescriptions = [description]
+        }
+        
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
                 // Replace this implementation with code to handle the error appropriately.
@@ -74,12 +84,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                  */
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
+            
+            if isRunningTests {
+                precondition( storeDescription.type == NSInMemoryStoreType )
+            }
+
+            
         })
+        syncManager = SyncManager(persistenceContainer: container)
         return container
     }()
 
-    // MARK: - Core Data Saving support
 
+    // MARK: - Core Data Saving support
     func saveContext () {
         let context = persistentContainer.viewContext
         if context.hasChanges {

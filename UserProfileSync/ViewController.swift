@@ -13,8 +13,12 @@
 //    https://developer.apple.com/videos/play/wwdc2015/226/
 
 import UIKit
+import CloudKit
+import CoreData
 
 class ViewController: UITableViewController {
+
+    @IBOutlet weak var syncObjects: UIBarButtonItem!
 
     let profiles = [
         "Profile 1",
@@ -26,19 +30,31 @@ class ViewController: UITableViewController {
         "Profile 7"]
     
     @IBOutlet weak var newProfileButton: UIBarButtonItem!
-    let persistenceContainer = (UIApplication.shared.delegate as! AppDelegate).persistentContainer
-    var result:[UserProfile] = []
+    var persistenceContainer:NSPersistentContainer!
+    var result: [UserProfile] = []
+    
+    var privateDB:CKDatabase!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        let container = CKContainer.default()
+        privateDB = container.privateCloudDatabase
+        
+        if  persistenceContainer == nil {
+            persistenceContainer = (UIApplication.shared.delegate as! AppDelegate).persistentContainer
+        }
         
         //self.tableView.delegate = self
         //self.tableView.dataSource  = self
         // self.tableView.reloadData()
         // Do any additional setup after loading the view, typically from a nib.
 
-        self.navigationItem.leftBarButtonItem = self.editButtonItem
-        self.updateView()
+
+//        self.navigationItem.leftBarButtonItem = self.editButtonItem
+        self.updateView {
+            
+        }
     }
     
     // MARK: Actions
@@ -65,9 +81,14 @@ class ViewController: UITableViewController {
     }
 
     @IBAction func newProfile(_ sender: Any) {
+        self.createNewProfile(completitionHandler: nil)
+    }
+
+    func createNewProfile(completitionHandler: (() -> ())?) {
+        
         let profile = UserProfile(context: persistenceContainer.viewContext)
         profile.objectID.uriRepresentation()
-        
+        profile.uuid = UUID()
         
         let existingProfileNames = result.map { return $0.name }
         let availableProfileNames = self.profiles.filter {
@@ -76,11 +97,10 @@ class ViewController: UITableViewController {
         if availableProfileNames.count > 0 {
             profile.name = availableProfileNames.first
             try! persistenceContainer.viewContext.save()
-            updateView()
+            updateView(completitionHandler: completitionHandler)
         }
+        
     }
-
-    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
@@ -90,13 +110,24 @@ class ViewController: UITableViewController {
         newProfileButton.isEnabled = self.result.count < self.profiles.count
     }
     
-    func updateView() {
+    func updateView(completitionHandler: (() -> ())?) {
         
         let viewContext = persistenceContainer.viewContext
+        
         viewContext.perform {
             self.result =  try! viewContext.fetch(UserProfile.fetchRequest())
             self.tableView.reloadData()
             self.toggleButtons()
+            
+            if let c = completitionHandler { c() }
+        }
+    }
+    
+    @IBAction func syncObjects(_ sender: Any) {
+        
+        let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
+        syncManager?.sync {
+            
         }
     }
     

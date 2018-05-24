@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8719680D20B6920B00FF1211 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8719680C20B6920B00FF1211 /* CloudKit.framework */; };
 		87AF555B20A9824100B9A8B6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF555A20A9824100B9A8B6 /* AppDelegate.swift */; };
 		87AF555D20A9824100B9A8B6 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF555C20A9824100B9A8B6 /* ViewController.swift */; };
 		87AF556020A9824100B9A8B6 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87AF555E20A9824100B9A8B6 /* Main.storyboard */; };
@@ -16,6 +17,7 @@
 		87AF557320A9824300B9A8B6 /* UserProfileSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF557220A9824300B9A8B6 /* UserProfileSyncTests.swift */; };
 		87AF557E20A9824300B9A8B6 /* UserProfileSyncUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF557D20A9824300B9A8B6 /* UserProfileSyncUITests.swift */; };
 		87BA984420AC4B6100630FCE /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BA984320AC4B6100630FCE /* SyncManager.swift */; };
+		87BA984620AC571A00630FCE /* SyncTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87BA984520AC571A00630FCE /* SyncTableViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		8719680C20B6920B00FF1211 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		87AF555720A9824100B9A8B6 /* UserProfileSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UserProfileSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87AF555A20A9824100B9A8B6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87AF555C20A9824100B9A8B6 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -51,6 +54,7 @@
 		87AF557D20A9824300B9A8B6 /* UserProfileSyncUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileSyncUITests.swift; sourceTree = "<group>"; };
 		87AF557F20A9824300B9A8B6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		87BA984320AC4B6100630FCE /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
+		87BA984520AC571A00630FCE /* SyncTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncTableViewController.swift; sourceTree = "<group>"; };
 		87E4A65F20A9A04600C9193F /* UserProfileSync.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = UserProfileSync.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -59,6 +63,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8719680D20B6920B00FF1211 /* CloudKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,6 +84,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8786ECBD20B596910074B1C5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8719680C20B6920B00FF1211 /* CloudKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		87AF554E20A9824100B9A8B6 = {
 			isa = PBXGroup;
 			children = (
@@ -86,6 +99,7 @@
 				87AF557120A9824300B9A8B6 /* UserProfileSyncTests */,
 				87AF557C20A9824300B9A8B6 /* UserProfileSyncUITests */,
 				87AF555820A9824100B9A8B6 /* Products */,
+				8786ECBD20B596910074B1C5 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -111,6 +125,7 @@
 				87AF556920A9824300B9A8B6 /* Info.plist */,
 				87AF556120A9824100B9A8B6 /* UserProfileSync.xcdatamodeld */,
 				87BA984320AC4B6100630FCE /* SyncManager.swift */,
+				87BA984520AC571A00630FCE /* SyncTableViewController.swift */,
 			);
 			path = UserProfileSync;
 			sourceTree = "<group>";
@@ -202,6 +217,9 @@
 					87AF555620A9824100B9A8B6 = {
 						CreatedOnToolsVersion = 9.3;
 						SystemCapabilities = {
+							com.apple.Push = {
+								enabled = 1;
+							};
 							com.apple.iCloud = {
 								enabled = 1;
 							};
@@ -269,6 +287,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				87BA984620AC571A00630FCE /* SyncTableViewController.swift in Sources */,
 				87BA984420AC4B6100630FCE /* SyncManager.swift in Sources */,
 				87AF555D20A9824100B9A8B6 /* ViewController.swift in Sources */,
 				87AF556320A9824100B9A8B6 /* UserProfileSync.xcdatamodeld in Sources */,
@@ -468,7 +487,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = UserProfileSync/UserProfileSync.entitlements;
 				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = KR36LV3S5F;
 				INFOPLIST_FILE = UserProfileSync/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -476,7 +495,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = no.sagliconsulting.UserProfileSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
+				PROVISIONING_PROFILE = "789130f8-544d-4b5b-bfd6-c542bd2281e0";
+				PROVISIONING_PROFILE_SPECIFIER = UserProfileSyncProfileDev;
 				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

@@ -3,14 +3,17 @@
     <entity name="SyncOperation" representedClassName="SyncOperation" syncable="YES" codeGenerationType="class">
         <attribute name="method" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="uri" optional="YES" attributeType="URI" syncable="YES"/>
+        <attribute name="uuid" optional="YES" attributeType="UUID" usesScalarValueType="NO" syncable="YES"/>
     </entity>
     <entity name="UserProfile" representedClassName="UserProfile" syncable="YES" codeGenerationType="class">
         <attribute name="color" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="encodeSystemFields" optional="YES" attributeType="Binary" syncable="YES"/>
         <attribute name="name" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="status" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="uuid" optional="YES" attributeType="UUID" usesScalarValueType="NO" syncable="YES"/>
     </entity>
     <elements>
-        <element name="UserProfile" positionX="-63" positionY="-18" width="128" height="90"/>
-        <element name="SyncOperation" positionX="-63" positionY="0" width="128" height="75"/>
+        <element name="SyncOperation" positionX="-63" positionY="0" width="128" height="90"/>
+        <element name="UserProfile" positionX="-63" positionY="-18" width="128" height="120"/>
     </elements>
 </model>
