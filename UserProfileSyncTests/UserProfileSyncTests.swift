@@ -14,8 +14,14 @@ import CoreData
 
 class UserProfileSyncTests: XCTestCase {
     
+    var syncManager:SyncManager!
+    var persistentContainer:NSPersistentContainer!
     override func setUp() {
         super.setUp()
+        
+        persistentContainer = (UIApplication.shared.delegate as! AppDelegate).persistentContainer
+        syncManager = SyncManager(persistenceContainer: persistentContainer, mode: .manual)
+        
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }
     
@@ -32,56 +38,47 @@ class UserProfileSyncTests: XCTestCase {
         vc.view.isHidden = false
         return vc
     }
-
-    func testCreateUserProfile() {
-        
-        let e = expectation(description: "Should create user profile")
-        let vc = createViewController()
-        
-        vc.createNewProfile {
-            XCTAssertEqual(vc.result.count, 1)
-            e.fulfill()
-        }
-        self.waitForExpectations(timeout: 10, handler: nil)
-    }
-    
     
     func testSyncUserProfiles() {
         
-        let syncmanager = (UIApplication.shared.delegate as! AppDelegate).syncManager
-        
         let e = expectation(description: "Should sync user profiles")
-        let vc = createViewController()
-
-        vc.createNewProfile {
-            
-            syncmanager?.sync {
-                
-                e.fulfill()
+      
+        let userProfile = UserProfile(context: persistentContainer.viewContext)
+        userProfile.name = "Unit test"
+        try! persistentContainer.viewContext.save()
+        
+        syncManager.addToSyncOperation(userProfiles: [userProfile])
+        
+        syncManager.sync { (result) in
+            switch result {
+            case .Success(let count) : XCTAssertEqual(count, 1)
+            case .Failure(_):
+                XCTFail()
             }
+            e.fulfill()
         }
+        
         waitForExpectations(timeout: 10, handler: nil)
     }
-    
     
     func testCloudKitCreateUserProfilInCloud() {
         
         let e = expectation(description: "CreateUserProfileInCloud")
-        let syncmanager = (UIApplication.shared.delegate as! AppDelegate).syncManager
-        let pcm = (UIApplication.shared.delegate as! AppDelegate).persistentContainer
-        let context = pcm.viewContext
+        
+        let context = persistentContainer.viewContext
         let userProfile = UserProfile(context: context)
         userProfile.name = "Unit Test"
-        syncmanager?.createOrUpdateObject(userProfile: userProfile) {
-            
-            e.fulfill()
-        }
         
+        syncManager.createOrUpdateObject(userProfile: userProfile, completition: { (result) in
+            switch result {
+            case .Success(let userProfile):
+                e.fulfill()
+            case .Failure(_):
+                XCTFail()
+            }
+        })
         waitForExpectations(timeout: 10, handler: nil)
-        
     }
-    
-    
     
     func testExample() {
         // This is an example of a functional test case.

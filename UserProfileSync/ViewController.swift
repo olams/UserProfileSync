@@ -126,7 +126,8 @@ class ViewController: UITableViewController {
     @IBAction func syncObjects(_ sender: Any) {
         
         let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
-        syncManager?.sync {
+        syncManager?.sync { (count) in
+            
             
         }
     }

@@ -91,7 +91,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
             
         })
-        syncManager = SyncManager(persistenceContainer: container)
+        
+        if isRunningTests == false {
+            syncManager = SyncManager(persistenceContainer: container, mode: .automatic)
+        }
         return container
     }()
 
