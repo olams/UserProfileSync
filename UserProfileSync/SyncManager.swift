@@ -166,6 +166,7 @@ class SyncManager {
                 return
             }
             
+            if userProfile.encodeSystemFields == nil {
             // Get record back
             let data = NSMutableData()
             let coder = NSKeyedArchiver.init(forWritingWith: data)
@@ -181,7 +182,7 @@ class SyncManager {
                 fatalError(error.localizedDescription)
                 return
             }
-            
+            }
             DispatchQueue.main.async {
                 completition(Result.Success(userProfile))
             }

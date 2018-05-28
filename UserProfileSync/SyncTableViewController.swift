@@ -45,9 +45,18 @@ class SyncTableViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let syncOperation = result[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = result[indexPath.row].uuid?.description
-        cell.detailTextLabel?.text = result[indexPath.row].method
+        let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
+    
+        if let esf = syncOperation.encodedSystemFields {
+            let record = syncManager?.createCKRecordFromEncodedSystemFields(encodedSystemFields: esf)
+            cell.textLabel?.text =  record!.recordID.recordName
+        } else {
+            cell.textLabel?.text = syncOperation.uri?.absoluteString
+        }
+        cell.detailTextLabel?.text = syncOperation.method
         return cell
     }
 

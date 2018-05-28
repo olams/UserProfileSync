@@ -50,15 +50,21 @@ class ViewController: UITableViewController {
         // self.tableView.reloadData()
         // Do any additional setup after loading the view, typically from a nib.
 
-
-//        self.navigationItem.leftBarButtonItem = self.editButtonItem
+        NotificationCenter.default.addObserver(self, selector: #selector(dataChanged(_:)), name: Notification.Name.NSManagedObjectContextDidSave, object: nil)
+        
         self.updateView {
-            
+        }
+    }
+    
+    @objc func dataChanged(_ notification:Notification) {
+
+        DispatchQueue.main.async {
+            self.persistenceContainer.viewContext.mergeChanges(fromContextDidSave: notification)
+            self.updateView() {}
         }
     }
     
     // MARK: Actions
-    
     @IBAction func editProfiles(_ sender: Any) {
         self.tableView.setEditing(true, animated: true)
     }
@@ -136,6 +142,16 @@ class ViewController: UITableViewController {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         cell.textLabel?.text = result[indexPath.row].name
+        cell.detailTextLabel?.text = "Not synced"
+        
+        if let encodedTextFields = result[indexPath.row].encodeSystemFields {
+        
+            let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
+            let record = syncManager?.createCKRecordFromEncodedSystemFields(encodedSystemFields: encodedTextFields)
+            
+            cell.detailTextLabel?.text = record!.recordID.recordName
+            cell.setNeedsLayout()
+        }
         return cell
     }
     
