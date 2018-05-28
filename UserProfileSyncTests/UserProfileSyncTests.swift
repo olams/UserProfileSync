@@ -47,11 +47,14 @@ class UserProfileSyncTests: XCTestCase {
         userProfile.name = "Unit test"
         try! persistentContainer.viewContext.save()
         
-        syncManager.addToSyncOperation(userProfiles: [userProfile])
+        syncManager.addToSyncOperationInserts(userProfiles: [userProfile])
         
         syncManager.sync { (result) in
             switch result {
-            case .Success(let count) : XCTAssertEqual(count, 1)
+            case .Success(let count) :
+                XCTAssertEqual(count, 1)
+                self.persistentContainer.viewContext.refresh(userProfile, mergeChanges: true)
+                XCTAssertNil(userProfile.encodeSystemFields)
             case .Failure(_):
                 XCTFail()
             }
@@ -61,17 +64,43 @@ class UserProfileSyncTests: XCTestCase {
         waitForExpectations(timeout: 10, handler: nil)
     }
     
-    func testCloudKitCreateUserProfilInCloud() {
+    func testUpdateUserProfile() {
+        
+    }
+    
+    func testCloudKitDeleteUserProfileInCloud() {
+        
+        let e = expectation(description: "DeleteUserProfileInCloud")
+        
+        let context = persistentContainer.viewContext
+        let userProfile = UserProfile(context: context)
+        try! context.save()
+
+        syncManager.createOrUpdateObject(userProfile: userProfile) { (result) in
+            
+            
+        }
+     
+        waitForExpectations(timeout: 10, handler: nil)
+    }
+    
+    func testCloudKitCreateUserProfileInCloud() {
         
         let e = expectation(description: "CreateUserProfileInCloud")
         
         let context = persistentContainer.viewContext
         let userProfile = UserProfile(context: context)
         userProfile.name = "Unit Test"
+
+        try! context.save()
         
         syncManager.createOrUpdateObject(userProfile: userProfile, completition: { (result) in
             switch result {
             case .Success(let userProfile):
+
+                context.refresh(userProfile, mergeChanges: true) // Make sure fields are persisted
+                XCTAssertNotNil(userProfile.encodeSystemFields)
+                
                 e.fulfill()
             case .Failure(_):
                 XCTFail()

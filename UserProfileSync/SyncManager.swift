@@ -11,8 +11,10 @@ import CoreData
 import CloudKit
 import UIKit
 
-let SyncActionPost = "POST"
-let SyncActionDelete = "DELETE"
+enum SyncMethod : String {
+    case post = "post"
+    case delete = "delete"
+}
 
 // Globals
 let NOTIFICATION_SYNC_POST = "syncPost"
@@ -27,77 +29,120 @@ enum SyncManagerMode {
     case manual
 }
 
+protocol Syncable {
+    var encodedSystemFields:String? { get }
+}
+
 class SyncManager {
     
     let persistenceContainer:NSPersistentContainer
     let privateDB = CKContainer(identifier: "iCloud.SAGLI.ICloudSync").privateCloudDatabase
-
+    let syncContext:NSManagedObjectContext!
+    
     init(persistenceContainer:NSPersistentContainer, mode:SyncManagerMode) {
         self.persistenceContainer = persistenceContainer
+        
+        // Use this for save / reading the SyncOperations
+        syncContext = self.persistenceContainer.newBackgroundContext()
         
         // Kick of notification when automatic mode is enabled
         if mode == .automatic {
             NotificationCenter.default.addObserver(self, selector: #selector(handleSave(_:)), name: Notification.Name.NSManagedObjectContextDidSave, object: nil)
         }
+
     }
     
     @objc func handleSave(_ notification: Notification) {
 
         let userInfo = notification.userInfo!
+
+        let context = notification.object as! NSManagedObjectContext
         
+        if context == self.syncContext {
+            return
+        }
+
         if let inserts = userInfo[NSInsertedObjectsKey] as? Set<UserProfile> {
-            let backgroundContext = persistenceContainer.newBackgroundContext()
-            for userProfile in inserts {
-                let syncOperation = SyncOperation(context: backgroundContext)
-                syncOperation.uri = userProfile.objectID.uriRepresentation()
-                syncOperation.method = SyncActionPost
-                syncOperation.uuid = userProfile.uuid
-                try! backgroundContext.save()
-            }
+            addToSyncOperationInserts(userProfiles: inserts)
+        }
+    
+        if let delets = userInfo[NSDeletedObjectsKey] as? Set<UserProfile> {
+            addToSyncOperationToDeletes(userProfiles: delets)
         }
     }
     
-    func addToSyncOperation(userProfiles:[UserProfile]) {
+    // MARK:- CRUD Operations -
+    func addToSyncOperationToDeletes(userProfiles:Set<UserProfile>) {
+        
+        for userProfile in userProfiles {
 
-        let backgroundContext = persistenceContainer.newBackgroundContext()
+            // Cannot delete if we dont have the encode system fields
+            guard let encodeSystemFields = userProfile.encodeSystemFields else {
+                continue
+            }
+            
+            let syncOperation = SyncOperation(context: syncContext)
+            syncOperation.method = SyncMethod.delete.rawValue
+            syncOperation.encodedSystemFields = encodeSystemFields
+        }
+        try! syncContext.save()
+    }
+    
+    func addToSyncOperationInserts(userProfiles:Set<UserProfile>) {
 
         for userProfile in userProfiles {
-            let syncOperation = SyncOperation(context: backgroundContext)
+            let syncOperation = SyncOperation(context: syncContext)
             syncOperation.uri = userProfile.objectID.uriRepresentation()
-            syncOperation.method = SyncActionPost
+            syncOperation.method = SyncMethod.post.rawValue
             syncOperation.uuid = userProfile.uuid
         }
         print("Added \(userProfiles.count) to sync operations" )
-        try! backgroundContext.save()
+        try! syncContext.save()
     }
     
     func sync(completition: ((Result<Int>) -> Void)?) {
         
-        let context = persistenceContainer.newBackgroundContext()
         
-        context.perform {
+        syncContext.perform {
             
-            let result = try! context.fetch(SyncOperation.fetchRequest()) as [SyncOperation]
+            let result = try! self.syncContext.fetch(SyncOperation.fetchRequest()) as [SyncOperation]
             print("Result is \(result)")
 
             for u in result {
                 
-                if let uri = u.uri  {
+                let method = SyncMethod(rawValue: u.method!)
+                if method == .post {
                     
-                    let managedID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: uri)!
+                    guard let uri = u.uri else { continue }
+                    let managedID = self.syncContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: uri)!
+
                     do {
-                        if let userProfile = context.object(with: managedID!) as? UserProfile {
+                        if let userProfile = self.syncContext.object(with: managedID!) as? UserProfile {
                             self.createOrUpdateObject(userProfile: userProfile) { (result) in }
                         }
                     } catch {
                         print("Error loading \(error)")
                     }
                 }
+                
+                else if method == .delete {
+                    
+                    let record = self.createCKRecordFromEncodedSystemFields(encodedSystemFields: u.encodedSystemFields!)
+                    self.privateDB.delete(withRecordID: record.recordID, completionHandler: { (recordId, error) in
+                        
+                    })
+                }
             }
             
             if let completition = completition {
                 completition(Result.Success(result.count))
             }
+            
+            // Clean up
+            for u in result {
+                self.syncContext.delete(u)
+            }
+            try! self.syncContext.save()
         }
     }
     
@@ -106,9 +151,7 @@ class SyncManager {
         var record:CKRecord!
         
         if let archivedData = userProfile.encodeSystemFields {
-            let unarchiver = NSKeyedUnarchiver(forReadingWith: archivedData)
-            unarchiver.requiresSecureCoding = true
-            record = CKRecord(coder: unarchiver)
+            record = createCKRecordFromEncodedSystemFields(encodedSystemFields: archivedData)
         } else {
             record = CKRecord(recordType: "UserProfiles")
         }
@@ -130,12 +173,24 @@ class SyncManager {
             record!.encodeSystemFields(with: coder)
             coder.finishEncoding()
 
-            userProfile.encodeSystemFields = data as Data
-            try! userProfile.managedObjectContext!.save()
+            let userProfileSave = self.syncContext.object(with: userProfile.objectID) as! UserProfile
+            userProfileSave.encodeSystemFields = data as Data
+            do {
+                try self.syncContext.save()
+            } catch {
+                fatalError(error.localizedDescription)
+                return
+            }
             
             DispatchQueue.main.async {
                 completition(Result.Success(userProfile))
             }
        }
+    }
+    
+    func createCKRecordFromEncodedSystemFields(encodedSystemFields:Data) -> CKRecord {
+        let unarchiver = NSKeyedUnarchiver(forReadingWith: encodedSystemFields)
+        unarchiver.requiresSecureCoding = true
+        return CKRecord(coder: unarchiver)!
     }
 }
