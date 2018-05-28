@@ -1,6 +1,6 @@
 //
 //  SyncManager.swift
-//  UserProfileSync
+//  SyncableSync
 //
 //  Created by Ola Marius Sagli on 16.05.2018.
 //  Copyright © 2018 Ola Marius Sagli. All rights reserved.
@@ -30,7 +30,10 @@ enum SyncManagerMode {
 }
 
 protocol Syncable {
-    var encodedSystemFields:String? { get }
+    var recordType:String { get }
+    var objectID:NSManagedObjectID { get }
+    var encodedSystemFields:Data? { get set }
+    func setCXRecordData(record:CKRecord)
 }
 
 class SyncManager {
@@ -57,46 +60,45 @@ class SyncManager {
         let userInfo = notification.userInfo!
 
         let context = notification.object as! NSManagedObjectContext
-        
         if context == self.syncContext {
+            // This is internal stuff so this is to avoid eternal looping
             return
         }
-
-        if let inserts = userInfo[NSInsertedObjectsKey] as? Set<UserProfile> {
-            addToSyncOperationInserts(userProfiles: inserts)
+        
+        if let inserts = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject> {
+            addToSyncOperationInserts(managedObjects: inserts)
         }
     
-        if let delets = userInfo[NSDeletedObjectsKey] as? Set<UserProfile> {
-            addToSyncOperationToDeletes(userProfiles: delets)
+        if let delets = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject> {
+            addToSyncOperationToDeletes(managedObjects: delets)
         }
     }
     
     // MARK:- CRUD Operations -
-    func addToSyncOperationToDeletes(userProfiles:Set<UserProfile>) {
+    func addToSyncOperationToDeletes(managedObjects:Set<NSManagedObject>) {
         
-        for userProfile in userProfiles {
+        for case let syncable as Syncable in managedObjects {
 
             // Cannot delete if we dont have the encode system fields
-            guard let encodeSystemFields = userProfile.encodeSystemFields else {
+            guard let encodedSystemFields = syncable.encodedSystemFields else {
                 continue
             }
             
             let syncOperation = SyncOperation(context: syncContext)
             syncOperation.method = SyncMethod.delete.rawValue
-            syncOperation.encodedSystemFields = encodeSystemFields
+            syncOperation.encodedSystemFields = encodedSystemFields
         }
         try! syncContext.save()
     }
     
-    func addToSyncOperationInserts(userProfiles:Set<UserProfile>) {
+    func addToSyncOperationInserts(managedObjects:Set<NSManagedObject>) {
 
-        for userProfile in userProfiles {
+        for case let syncable as Syncable in managedObjects {
+            
             let syncOperation = SyncOperation(context: syncContext)
-            syncOperation.uri = userProfile.objectID.uriRepresentation()
+            syncOperation.uri = syncable.objectID.uriRepresentation()
             syncOperation.method = SyncMethod.post.rawValue
-            syncOperation.uuid = userProfile.uuid
         }
-        print("Added \(userProfiles.count) to sync operations" )
         try! syncContext.save()
     }
     
@@ -117,8 +119,8 @@ class SyncManager {
                     let managedID = self.syncContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: uri)!
 
                     do {
-                        if let userProfile = self.syncContext.object(with: managedID!) as? UserProfile {
-                            self.createOrUpdateObject(userProfile: userProfile) { (result) in }
+                        if let Syncable = self.syncContext.object(with: managedID!) as? Syncable {
+                            self.createOrUpdateObject(syncable: Syncable) { (result) in }
                         }
                     } catch {
                         print("Error loading \(error)")
@@ -146,17 +148,17 @@ class SyncManager {
         }
     }
     
-    func createOrUpdateObject(userProfile:UserProfile, completition:@escaping (Result<UserProfile>) -> Void) {
+    func createOrUpdateObject(syncable:Syncable, completition:@escaping (Result<Syncable>) -> Void) {
 
         var record:CKRecord!
         
-        if let archivedData = userProfile.encodeSystemFields {
+        if let archivedData = syncable.encodedSystemFields {
             record = createCKRecordFromEncodedSystemFields(encodedSystemFields: archivedData)
         } else {
-            record = CKRecord(recordType: "UserProfiles")
+            record = CKRecord(recordType: syncable.recordType)
         }
-        record["name"] = userProfile.name! as NSString
-
+        syncable.setCXRecordData(record: record)
+        
         self.privateDB.save(record) { (record, error) in
             
             if (error != nil) {
@@ -166,25 +168,25 @@ class SyncManager {
                 return
             }
             
-            if userProfile.encodeSystemFields == nil {
-            // Get record back
-            let data = NSMutableData()
-            let coder = NSKeyedArchiver.init(forWritingWith: data)
-            coder.requiresSecureCoding = true
-            record!.encodeSystemFields(with: coder)
-            coder.finishEncoding()
+            if syncable.encodedSystemFields == nil {
+                // Get record back
+                let data = NSMutableData()
+                let coder = NSKeyedArchiver.init(forWritingWith: data)
+                coder.requiresSecureCoding = true
+                record!.encodeSystemFields(with: coder)
+                coder.finishEncoding()
 
-            let userProfileSave = self.syncContext.object(with: userProfile.objectID) as! UserProfile
-            userProfileSave.encodeSystemFields = data as Data
-            do {
-                try self.syncContext.save()
-            } catch {
-                fatalError(error.localizedDescription)
-                return
-            }
+                var syncSaveObject = self.syncContext.object(with: syncable.objectID) as! Syncable
+                syncSaveObject.encodedSystemFields = data as Data
+                do {
+                    try self.syncContext.save()
+                } catch {
+                    fatalError(error.localizedDescription)
+                    return
+                }
             }
             DispatchQueue.main.async {
-                completition(Result.Success(userProfile))
+                completition(Result.Success(syncable))
             }
        }
     }

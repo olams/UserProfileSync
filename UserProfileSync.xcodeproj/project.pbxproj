@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8719680D20B6920B00FF1211 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8719680C20B6920B00FF1211 /* CloudKit.framework */; };
+		8719681120BC2D9300FF1211 /* UserProfile+Syncable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8719681020BC2D9300FF1211 /* UserProfile+Syncable.swift */; };
 		87AF555B20A9824100B9A8B6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF555A20A9824100B9A8B6 /* AppDelegate.swift */; };
 		87AF555D20A9824100B9A8B6 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87AF555C20A9824100B9A8B6 /* ViewController.swift */; };
 		87AF556020A9824100B9A8B6 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 87AF555E20A9824100B9A8B6 /* Main.storyboard */; };
@@ -39,6 +40,7 @@
 
 /* Begin PBXFileReference section */
 		8719680C20B6920B00FF1211 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
+		8719681020BC2D9300FF1211 /* UserProfile+Syncable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserProfile+Syncable.swift"; sourceTree = "<group>"; };
 		87AF555720A9824100B9A8B6 /* UserProfileSync.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UserProfileSync.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		87AF555A20A9824100B9A8B6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		87AF555C20A9824100B9A8B6 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				87AF556120A9824100B9A8B6 /* UserProfileSync.xcdatamodeld */,
 				87BA984320AC4B6100630FCE /* SyncManager.swift */,
 				87BA984520AC571A00630FCE /* SyncTableViewController.swift */,
+				8719681020BC2D9300FF1211 /* UserProfile+Syncable.swift */,
 			);
 			path = UserProfileSync;
 			sourceTree = "<group>";
@@ -292,6 +295,7 @@
 				87AF555D20A9824100B9A8B6 /* ViewController.swift in Sources */,
 				87AF556320A9824100B9A8B6 /* UserProfileSync.xcdatamodeld in Sources */,
 				87AF555B20A9824100B9A8B6 /* AppDelegate.swift in Sources */,
+				8719681120BC2D9300FF1211 /* UserProfile+Syncable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

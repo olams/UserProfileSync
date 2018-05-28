@@ -144,7 +144,7 @@ class ViewController: UITableViewController {
         cell.textLabel?.text = result[indexPath.row].name
         cell.detailTextLabel?.text = "Not synced"
         
-        if let encodedTextFields = result[indexPath.row].encodeSystemFields {
+        if let encodedTextFields = result[indexPath.row].encodedSystemFields {
         
             let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
             let record = syncManager?.createCKRecordFromEncodedSystemFields(encodedSystemFields: encodedTextFields)
