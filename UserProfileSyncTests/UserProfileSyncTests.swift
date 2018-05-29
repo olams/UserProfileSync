@@ -46,15 +46,16 @@ class UserProfileSyncTests: XCTestCase {
         let userProfile = UserProfile(context: persistentContainer.viewContext)
         userProfile.name = "Unit test"
         try! persistentContainer.viewContext.save()
-        
-        syncManager.addToSyncOperationInserts(userProfiles: [userProfile])
+
+
+        syncManager.addToSyncOperationInserts(managedObjects: [userProfile])
         
         syncManager.sync { (result) in
             switch result {
             case .Success(let count) :
                 XCTAssertEqual(count, 1)
                 self.persistentContainer.viewContext.refresh(userProfile, mergeChanges: true)
-                XCTAssertNil(userProfile.encodeSystemFields)
+                XCTAssertNil(userProfile.encodedSystemFields)
             case .Failure(_):
                 XCTFail()
             }
@@ -76,7 +77,7 @@ class UserProfileSyncTests: XCTestCase {
         let userProfile = UserProfile(context: context)
         try! context.save()
 
-        syncManager.createOrUpdateObject(userProfile: userProfile) { (result) in
+        syncManager.createOrUpdateObject(syncable: userProfile) { (result) in
             
             
         }
@@ -94,18 +95,28 @@ class UserProfileSyncTests: XCTestCase {
 
         try! context.save()
         
-        syncManager.createOrUpdateObject(userProfile: userProfile, completition: { (result) in
-            switch result {
-            case .Success(let userProfile):
 
-                context.refresh(userProfile, mergeChanges: true) // Make sure fields are persisted
-                XCTAssertNotNil(userProfile.encodeSystemFields)
+        syncManager.createOrUpdateObject(syncable: userProfile, completition: { (result) in
+            switch result {
+            case .Success(let syncable):
+                XCTAssertNotNil(syncable.encodedSystemFields)
                 
                 e.fulfill()
             case .Failure(_):
                 XCTFail()
             }
         })
+        waitForExpectations(timeout: 10, handler: nil)
+    }
+    
+    func testFetchDatabaseChangesFromCloudKit() {
+        
+        let e = expectation(description: "testDatabaseChangesFromCloudKit")
+    
+        syncManager.fetchChangesFromCloudKit {
+            e.fulfill()
+        }
+        
         waitForExpectations(timeout: 10, handler: nil)
     }
     

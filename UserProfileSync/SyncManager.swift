@@ -31,6 +31,7 @@ enum SyncManagerMode {
 
 protocol Syncable {
     var recordType:String { get }
+    var zoneName:String { get }
     var objectID:NSManagedObjectID { get }
     var encodedSystemFields:Data? { get set }
     func setCXRecordData(record:CKRecord)
@@ -155,7 +156,8 @@ class SyncManager {
         if let archivedData = syncable.encodedSystemFields {
             record = createCKRecordFromEncodedSystemFields(encodedSystemFields: archivedData)
         } else {
-            record = CKRecord(recordType: syncable.recordType)
+            let zoneID = CKRecordZoneID(zoneName: syncable.zoneName, ownerName: CKCurrentUserDefaultName)
+            record = CKRecord(recordType: syncable.recordType, zoneID: zoneID)
         }
         syncable.setCXRecordData(record: record)
         
@@ -195,5 +197,85 @@ class SyncManager {
         let unarchiver = NSKeyedUnarchiver(forReadingWith: encodedSystemFields)
         unarchiver.requiresSecureCoding = true
         return CKRecord(coder: unarchiver)!
+    }
+    
+    func fetchChangesFromCloudKit(completition:@escaping () -> Void) {
+
+        let database = self.privateDB
+        var changedZoneIDs: [CKRecordZoneID] = []
+        
+        let operation = CKFetchDatabaseChangesOperation(previousServerChangeToken: nil)
+        
+        operation.recordZoneWithIDChangedBlock = { (zoneID) in
+            changedZoneIDs.append(zoneID)
+        }
+        
+        operation.changeTokenUpdatedBlock = { (token) in
+            
+            
+            // Flush zone deletions for this database to disk
+            // Write this new database change token to memory
+        }
+        
+        operation.fetchDatabaseChangesCompletionBlock = { (token, moreComing, error) in
+            
+            if let error = error {
+                print(error.localizedDescription)
+                return 
+            }
+
+            self.fetchZoneChanges(database: database, databaseTokenKey: "private", zoneIDs: changedZoneIDs) {
+                // Flush in-memory database change token to disk
+                completition()
+            }
+        }
+        database.add(operation)
+    }
+    
+    func fetchZoneChanges(database: CKDatabase, databaseTokenKey: String, zoneIDs: [CKRecordZoneID], completion: @escaping () -> Void) {
+        
+        print("ZoneIDs: ", zoneIDs)
+        
+        // Look up the previous change token for each zone
+        var optionsByRecordZoneID = [CKRecordZoneID: CKFetchRecordZoneChangesOptions]()
+        for zoneID in zoneIDs {
+            let options = CKFetchRecordZoneChangesOptions()
+            // options.previousServerChangeToken = … // Read change token from disk
+                optionsByRecordZoneID[zoneID] = options
+            
+            
+        }
+        
+        let operation = CKFetchRecordZoneChangesOperation(recordZoneIDs: zoneIDs, optionsByRecordZoneID: optionsByRecordZoneID)
+        
+        operation.recordChangedBlock = { (record) in
+            print("@@@@@@@@@@@@ Record changed:", record)
+            // Write this record change to memory
+        }
+        
+        operation.recordZoneChangeTokensUpdatedBlock = { (zoneId, token, data) in
+            // Flush record changes and deletions for this zone to disk
+            // Write this new zone change token to disk
+            print("@@@@@@@@@@@@@@@ New token for zoneId: \(zoneId) token:\(token)")
+        }
+        
+        operation.recordZoneFetchCompletionBlock = { (zoneId, changeToken, _, _, error) in
+            if let error = error {
+                print("Error fetching zone changes for \(databaseTokenKey) database:", error)
+                return
+            }
+            print("New change token: \(zoneId)")
+            // Flush record changes and deletions for this zone to disk
+            // Write this new zone change token to disk
+        }
+        
+        operation.fetchRecordZoneChangesCompletionBlock = { (error) in
+            if let error = error {
+                print("Error fetching zone changes for \(databaseTokenKey) database:", error)
+            }
+            completion()
+        }
+        
+        database.add(operation)
     }
 }

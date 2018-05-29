@@ -10,6 +10,13 @@ import Foundation
 import CloudKit
 
 extension UserProfile : Syncable {
+    
+    var zoneName: String {
+        get {
+            return "UserProfileZone"
+        }
+    }
+    
     var recordType: String {
         get {
             return "UserProfiles"
@@ -19,5 +26,4 @@ extension UserProfile : Syncable {
    func setCXRecordData(record: CKRecord) {
         record["name"] = name! as NSString
     }
-    
 }

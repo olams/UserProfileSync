@@ -53,6 +53,8 @@ class ViewController: UITableViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(dataChanged(_:)), name: Notification.Name.NSManagedObjectContextDidSave, object: nil)
         
         self.updateView {
+            
+            // Done
         }
     }
     
@@ -134,7 +136,7 @@ class ViewController: UITableViewController {
         let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
         syncManager?.sync { (count) in
             
-            
+            // Done
         }
     }
     
