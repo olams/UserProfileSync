@@ -131,29 +131,27 @@ class ViewController: UITableViewController {
         }
     }
     
-    @IBAction func syncObjects(_ sender: Any) {
+    @IBAction func downloadChanges(_ sender: Any) {
+        let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
+        syncManager?.fetchChangesFromCloudKit { (result) in
+            print("Changes from CloudKit: %@", result)
+        }
+    }
+    
+    @IBAction func uploadChanges(_ sender: Any) {
         
         let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
         syncManager?.sync { (count) in
-            
-            // Done
         }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = result[indexPath.row].name
-        cell.detailTextLabel?.text = "Not synced"
-        
-        if let encodedTextFields = result[indexPath.row].encodedSystemFields {
-        
-            let syncManager = (UIApplication.shared.delegate as! AppDelegate).syncManager
-            let record = syncManager?.createCKRecordFromEncodedSystemFields(encodedSystemFields: encodedTextFields)
-            
-            cell.detailTextLabel?.text = record!.recordID.recordName
-            cell.setNeedsLayout()
-        }
+        let up = result[indexPath.row]
+        cell.textLabel?.text = up.name
+        cell.detailTextLabel?.text = "\(up.uuid!.uuidString) "
+            + (up.encodedSystemFields != nil ? " (Synced) ": "(Not Synced)" )
         return cell
     }
     

@@ -12,7 +12,8 @@ import CloudKit
 import UIKit
 
 enum SyncMethod : String {
-    case post = "post"
+    case insert = "insert"
+    case update = "update"
     case delete = "delete"
 }
 
@@ -29,12 +30,15 @@ enum SyncManagerMode {
     case manual
 }
 
+
 protocol Syncable {
+    var uuid:UUID? { get }
     var recordType:String { get }
     var zoneName:String { get }
     var objectID:NSManagedObjectID { get }
     var encodedSystemFields:Data? { get set }
     func setCXRecordData(record:CKRecord)
+    func setData(record:CKRecord)
 }
 
 class SyncManager {
@@ -42,6 +46,8 @@ class SyncManager {
     let persistenceContainer:NSPersistentContainer
     let privateDB = CKContainer(identifier: "iCloud.SAGLI.ICloudSync").privateCloudDatabase
     let syncContext:NSManagedObjectContext!
+    var lastServerChangeToken:CKServerChangeToken? = nil
+    var lastZoneChangeTokens:[CKRecordZoneID:CKServerChangeToken] = [:]
     
     init(persistenceContainer:NSPersistentContainer, mode:SyncManagerMode) {
         self.persistenceContainer = persistenceContainer
@@ -98,7 +104,7 @@ class SyncManager {
             
             let syncOperation = SyncOperation(context: syncContext)
             syncOperation.uri = syncable.objectID.uriRepresentation()
-            syncOperation.method = SyncMethod.post.rawValue
+            syncOperation.method = SyncMethod.insert.rawValue
         }
         try! syncContext.save()
     }
@@ -114,18 +120,15 @@ class SyncManager {
             for u in result {
                 
                 let method = SyncMethod(rawValue: u.method!)
-                if method == .post {
+                if method == .insert {
                     
                     guard let uri = u.uri else { continue }
                     let managedID = self.syncContext.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: uri)!
 
-                    do {
-                        if let Syncable = self.syncContext.object(with: managedID!) as? Syncable {
-                            self.createOrUpdateObject(syncable: Syncable) { (result) in }
-                        }
-                    } catch {
-                        print("Error loading \(error)")
+                    if let syncable = self.syncContext.object(with: managedID!) as? Syncable {
+                        self.saveToCloudKit(syncable: syncable) { (result) in }
                     }
+             
                 }
                 
                 else if method == .delete {
@@ -149,21 +152,104 @@ class SyncManager {
         }
     }
     
-    func createOrUpdateObject(syncable:Syncable, completition:@escaping (Result<Syncable>) -> Void) {
+    // MARK:- CX Records -
+    func encodedSystemFields (record:CKRecord) -> Data {
+        let data = NSMutableData()
+        let coder = NSKeyedArchiver.init(forWritingWith: data)
+        coder.requiresSecureCoding = true
+        record.encodeSystemFields(with: coder)
+        coder.finishEncoding()
+        return data as Data
+    }
+    
+    func creaateCKRecordFromSyncable(syncable:Syncable) -> CKRecord {
+        let zoneID = CKRecordZoneID(zoneName: syncable.zoneName, ownerName: CKCurrentUserDefaultName)
+        let recordID = CKRecordID(recordName: syncable.uuid!.uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: syncable.recordType, recordID: recordID)
+        syncable.setCXRecordData(record: record)
+        return record
+    }
+    
+    func createCKRecordFromEncodedSystemFields(encodedSystemFields:Data) -> CKRecord {
+        let unarchiver = NSKeyedUnarchiver(forReadingWith: encodedSystemFields)
+        unarchiver.requiresSecureCoding = true
+        return CKRecord(coder: unarchiver)!
+    }
+    
+    
+    func fetch(uuid:UUID, recordType:String) -> NSManagedObject? {
+        let fetchRequest:NSFetchRequest<UserProfile> = UserProfile.fetchRequest()
+        fetchRequest.predicate =  NSPredicate(format: "%K == %@", "uuid", uuid as CVarArg)
+        let result = try! self.syncContext.fetch(fetchRequest)
+        return result.first
+    }
+    
+    // MARK: - Cloud Kit CRUD -
+    func deleteRecordFromCloudKit(recordID:CKRecordID, recordType:String, completition: (Result<Syncable>) -> Void) {
+        
+        let uuid = UUID(uuidString: recordID.recordName)
+        if let managedObject = fetch(uuid: uuid!, recordType: recordType) {
+            
+            syncContext.delete(managedObject)
+            
 
+            do {
+                try syncContext.save()
+                completition(Result.Success((managedObject as! Syncable)))
+            } catch {
+                completition(Result.Failure(error))
+            }
+        }
+    }
+    
+    func insertOrUpdateRecordFromCloudKit(record:CKRecord, completition:@escaping (Result<(SyncMethod,Syncable)>) -> Void) {
+
+
+        let uuid = UUID(uuidString: record.recordID.recordName)!
+
+        syncContext.perform {
+            
+            do {
+                if let syncable = self.fetch(uuid: uuid, recordType: "UserProfile") as? Syncable {
+                    
+                    print("UPDATE syncable with UUID %@", syncable.uuid!)
+                    syncable.setData(record: record)
+                    try self.syncContext.save()
+                    completition(Result.Success((.update, syncable)))
+                }
+                else {
+                    print("INSERT syncable with UUID %@", uuid)
+                    let managedObject = UserProfile(context: self.syncContext)
+                    managedObject.setData(record: record)
+                    managedObject.uuid = uuid
+                    managedObject.encodedSystemFields = self.encodedSystemFields(record: record)
+                    try self.syncContext.save()
+                    
+                    completition(Result.Success((.insert, managedObject)))
+                }
+
+            } catch {
+                completition(Result.Failure(error))
+            }
+        }
+    }
+    
+    
+    // MARK: - Cloud Kit Sync -
+    func saveToCloudKit(syncable:Syncable, completition:@escaping (Result<Syncable>) -> Void) {
+        
         var record:CKRecord!
         
         if let archivedData = syncable.encodedSystemFields {
             record = createCKRecordFromEncodedSystemFields(encodedSystemFields: archivedData)
         } else {
-            let zoneID = CKRecordZoneID(zoneName: syncable.zoneName, ownerName: CKCurrentUserDefaultName)
-            record = CKRecord(recordType: syncable.recordType, zoneID: zoneID)
+            record = creaateCKRecordFromSyncable(syncable: syncable)
         }
-        syncable.setCXRecordData(record: record)
         
         self.privateDB.save(record) { (record, error) in
             
             if (error != nil) {
+                print("Error saving record %@", error?.localizedDescription)
                 DispatchQueue.main.async {
                     completition(Result.Failure(error!))
                 }
@@ -177,42 +263,36 @@ class SyncManager {
                 coder.requiresSecureCoding = true
                 record!.encodeSystemFields(with: coder)
                 coder.finishEncoding()
-
+                
                 var syncSaveObject = self.syncContext.object(with: syncable.objectID) as! Syncable
                 syncSaveObject.encodedSystemFields = data as Data
+                
                 do {
                     try self.syncContext.save()
                 } catch {
                     fatalError(error.localizedDescription)
-                    return
                 }
             }
             DispatchQueue.main.async {
                 completition(Result.Success(syncable))
             }
-       }
+        }
     }
     
-    func createCKRecordFromEncodedSystemFields(encodedSystemFields:Data) -> CKRecord {
-        let unarchiver = NSKeyedUnarchiver(forReadingWith: encodedSystemFields)
-        unarchiver.requiresSecureCoding = true
-        return CKRecord(coder: unarchiver)!
-    }
-    
-    func fetchChangesFromCloudKit(completition:@escaping () -> Void) {
+    func fetchChangesFromCloudKit(completition:@escaping (Result<Void>) -> Void) {
 
         let database = self.privateDB
         var changedZoneIDs: [CKRecordZoneID] = []
         
-        let operation = CKFetchDatabaseChangesOperation(previousServerChangeToken: nil)
+        let operation = CKFetchDatabaseChangesOperation(previousServerChangeToken: self.lastServerChangeToken)
         
         operation.recordZoneWithIDChangedBlock = { (zoneID) in
             changedZoneIDs.append(zoneID)
         }
-        
+
         operation.changeTokenUpdatedBlock = { (token) in
             
-            
+            self.lastServerChangeToken = token
             // Flush zone deletions for this database to disk
             // Write this new database change token to memory
         }
@@ -220,50 +300,75 @@ class SyncManager {
         operation.fetchDatabaseChangesCompletionBlock = { (token, moreComing, error) in
             
             if let error = error {
-                print(error.localizedDescription)
+                completition(Result.Failure(error))
                 return 
             }
-
-            self.fetchZoneChanges(database: database, databaseTokenKey: "private", zoneIDs: changedZoneIDs) {
-                // Flush in-memory database change token to disk
-                completition()
-            }
+            
+            self.fetchZoneChanges(database: database, databaseTokenKey: "private", zoneIDs: changedZoneIDs, completion: completition)
         }
+        
         database.add(operation)
     }
     
-    func fetchZoneChanges(database: CKDatabase, databaseTokenKey: String, zoneIDs: [CKRecordZoneID], completion: @escaping () -> Void) {
+    func fetchZoneChanges(database: CKDatabase, databaseTokenKey: String, zoneIDs: [CKRecordZoneID], completion: @escaping (Result<Void>) -> Void) {
+
+        if zoneIDs.count == 0 {
+            completion(Result.Success(()))
+            return
+        }
+        print("Fetching zone with id " , zoneIDs)
         
-        print("ZoneIDs: ", zoneIDs)
+        let fetchRequest:NSFetchRequest<UserProfile> = UserProfile.fetchRequest()
+        let existingRecords = try! self.syncContext.fetch(fetchRequest)
+        for s in existingRecords {
+            print("Existing : %@ %@", s.uuid!.uuidString, (s.isDeleted ? "(deleted)" : " (Not deleted)"))
+        }
+
+        
         
         // Look up the previous change token for each zone
         var optionsByRecordZoneID = [CKRecordZoneID: CKFetchRecordZoneChangesOptions]()
         for zoneID in zoneIDs {
             let options = CKFetchRecordZoneChangesOptions()
-            // options.previousServerChangeToken = … // Read change token from disk
-                optionsByRecordZoneID[zoneID] = options
-            
-            
+            if let lastZoneChangeToken = lastZoneChangeTokens[zoneID] {
+                options.previousServerChangeToken = lastZoneChangeToken
+            }
+            optionsByRecordZoneID[zoneID] = options
         }
         
         let operation = CKFetchRecordZoneChangesOperation(recordZoneIDs: zoneIDs, optionsByRecordZoneID: optionsByRecordZoneID)
-        
         operation.recordChangedBlock = { (record) in
-            print("@@@@@@@@@@@@ Record changed:", record)
-            // Write this record change to memory
+            print("CloudKit: Record change : ", record.recordID.recordName)
+            self.insertOrUpdateRecordFromCloudKit(record: record, completition: { (result) in
+                print("Inserted record from cloud")
+            })
+        }
+        
+        operation.recordWithIDWasDeletedBlock = { (recordID, recordType) in
+            
+            self.deleteRecordFromCloudKit(recordID: recordID, recordType:recordType, completition: { (result) in
+                print("Record deleted:", recordID, " RecordType: ", recordType)
+            })
+                
+            // Write this record deletion to memory
         }
         
         operation.recordZoneChangeTokensUpdatedBlock = { (zoneId, token, data) in
+            
+            self.lastZoneChangeTokens[zoneId] = token
             // Flush record changes and deletions for this zone to disk
             // Write this new zone change token to disk
-            print("@@@@@@@@@@@@@@@ New token for zoneId: \(zoneId) token:\(token)")
+            print("New token for zoneId: \(zoneId) token:\(token)")
         }
         
         operation.recordZoneFetchCompletionBlock = { (zoneId, changeToken, _, _, error) in
+            
             if let error = error {
                 print("Error fetching zone changes for \(databaseTokenKey) database:", error)
                 return
             }
+            
+            
             print("New change token: \(zoneId)")
             // Flush record changes and deletions for this zone to disk
             // Write this new zone change token to disk
@@ -273,7 +378,7 @@ class SyncManager {
             if let error = error {
                 print("Error fetching zone changes for \(databaseTokenKey) database:", error)
             }
-            completion()
+            completion(Result.Success(()))
         }
         
         database.add(operation)

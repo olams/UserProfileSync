@@ -12,10 +12,12 @@ import CoreData
 
 @testable import UserProfileSync
 
+
 class UserProfileSyncTests: XCTestCase {
     
     var syncManager:SyncManager!
     var persistentContainer:NSPersistentContainer!
+    
     override func setUp() {
         super.setUp()
         
@@ -28,6 +30,17 @@ class UserProfileSyncTests: XCTestCase {
     override func tearDown() {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
         super.tearDown()
+    }
+    
+    func createCXRecord() -> CKRecord {
+        
+        let zoneID = CKRecordZoneID(zoneName: "UserProfileZone", ownerName: CKCurrentUserDefaultName)
+        let recordID = CKRecordID(recordName: UUID().uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "UserProfiles", recordID: recordID)
+        record["name"] = "CK Record Name" as! NSString
+        return record
+        
+        
     }
     
     func createViewController() -> ViewController {
@@ -44,6 +57,7 @@ class UserProfileSyncTests: XCTestCase {
         let e = expectation(description: "Should sync user profiles")
       
         let userProfile = UserProfile(context: persistentContainer.viewContext)
+        userProfile.uuid = UUID()
         userProfile.name = "Unit test"
         try! persistentContainer.viewContext.save()
 
@@ -69,34 +83,45 @@ class UserProfileSyncTests: XCTestCase {
         
     }
     
-    func testCloudKitDeleteUserProfileInCloud() {
+    func testUpdateFromCloudKit() {
         
-        let e = expectation(description: "DeleteUserProfileInCloud")
-        
+        let e = expectation(description: "Update from cloud kit")
         let context = persistentContainer.viewContext
-        let userProfile = UserProfile(context: context)
-        try! context.save()
+        
+        let record1 = createCXRecord()
 
-        syncManager.createOrUpdateObject(syncable: userProfile) { (result) in
+        // Save profile
+        let userProfile = UserProfile(context: context)
+        userProfile.uuid = UUID(uuidString: record1.recordID.recordName)
+        try! context.save()
+        
+        self.syncManager.insertOrUpdateRecordFromCloudKit(record: record1) { (result) in
+        
+            switch result {
             
-            
+            case .Success(let method, let syncable):
+                XCTAssertEqual(method, SyncMethod.update)
+                e.fulfill()
+            case .Failure(_):
+                XCTFail()
+            }
         }
-     
-        waitForExpectations(timeout: 10, handler: nil)
+        self.waitForExpectations(timeout: 10, handler: nil)
     }
     
+
     func testCloudKitCreateUserProfileInCloud() {
         
         let e = expectation(description: "CreateUserProfileInCloud")
         
         let context = persistentContainer.viewContext
         let userProfile = UserProfile(context: context)
+        userProfile.uuid = UUID()
         userProfile.name = "Unit Test"
 
         try! context.save()
         
-
-        syncManager.createOrUpdateObject(syncable: userProfile, completition: { (result) in
+        syncManager.saveToCloudKit(syncable: userProfile, completition: { (result) in
             switch result {
             case .Success(let syncable):
                 XCTAssertNotNil(syncable.encodedSystemFields)
@@ -108,28 +133,47 @@ class UserProfileSyncTests: XCTestCase {
         })
         waitForExpectations(timeout: 10, handler: nil)
     }
-    
-    func testFetchDatabaseChangesFromCloudKit() {
+
+    func testInsertCXRecordFromCloudKit() {
+
+        let e = expectation(description: "testInsertCXRecordFromCloudKit")
+
+        let record = createCXRecord()
         
-        let e = expectation(description: "testDatabaseChangesFromCloudKit")
-    
-        syncManager.fetchChangesFromCloudKit {
-            e.fulfill()
+        syncManager.insertOrUpdateRecordFromCloudKit(record: record) { (result) in
+            
+            print("Record is", record)
+            
+            switch result {
+            case .Success(let syncMethod, let record):
+                XCTAssertEqual(syncMethod,.insert)
+            case .Failure(_):
+                XCTFail()
+            }
+
+            self.syncManager.syncContext.refreshAllObjects()
+            self.syncManager.insertOrUpdateRecordFromCloudKit(record: record) { (result2) in
+
+                switch result2 {
+                case .Success(let syncMethod, let record):
+                    XCTAssertEqual(syncMethod,.update)
+                case .Failure(_):
+                    XCTFail()
+                }
+                e.fulfill()
+            }
         }
-        
         waitForExpectations(timeout: 10, handler: nil)
     }
     
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
-    
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testCreaateCKRecordFromSyncable() {
+        
+        let userProfile = UserProfile(context: persistentContainer.viewContext)
+        userProfile.uuid = UUID()
+        userProfile.name = "test"
+        
+        let record = syncManager.creaateCKRecordFromSyncable(syncable: userProfile )
+        XCTAssertEqual(record.recordID.recordName, userProfile.uuid?.uuidString)
     }
     
 }
