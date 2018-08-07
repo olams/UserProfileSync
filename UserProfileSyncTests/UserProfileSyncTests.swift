@@ -27,11 +27,7 @@ class UserProfileSyncTests: XCTestCase {
         // Put setup code here. This method is called before the invocation of each test method in the class.
     }
     
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
-    
+    // MARK:- Helper methods
     func createCXRecord() -> CKRecord {
         
         let zoneID = CKRecordZoneID(zoneName: "UserProfileZone", ownerName: CKCurrentUserDefaultName)
@@ -52,6 +48,7 @@ class UserProfileSyncTests: XCTestCase {
         return vc
     }
     
+    // MARK:- Tests
     func testSyncUserProfiles() {
         
         let e = expectation(description: "Should sync user profiles")
@@ -62,7 +59,7 @@ class UserProfileSyncTests: XCTestCase {
         try! persistentContainer.viewContext.save()
 
 
-        syncManager.addToSyncOperationInserts(managedObjects: [userProfile])
+        syncManager.addSyncOperationToInserts(managedObjects: [userProfile])
         
         syncManager.sync { (result) in
             switch result {
@@ -77,10 +74,6 @@ class UserProfileSyncTests: XCTestCase {
         }
         
         waitForExpectations(timeout: 10, handler: nil)
-    }
-    
-    func testUpdateUserProfile() {
-        
     }
     
     func testUpdateFromCloudKit() {
@@ -145,22 +138,13 @@ class UserProfileSyncTests: XCTestCase {
             print("Record is", record)
             
             switch result {
+                
             case .Success(let syncMethod, let record):
                 XCTAssertEqual(syncMethod,.insert)
+                e.fulfill()
+
             case .Failure(_):
                 XCTFail()
-            }
-
-            self.syncManager.syncContext.refreshAllObjects()
-            self.syncManager.insertOrUpdateRecordFromCloudKit(record: record) { (result2) in
-
-                switch result2 {
-                case .Success(let syncMethod, let record):
-                    XCTAssertEqual(syncMethod,.update)
-                case .Failure(_):
-                    XCTFail()
-                }
-                e.fulfill()
             }
         }
         waitForExpectations(timeout: 10, handler: nil)

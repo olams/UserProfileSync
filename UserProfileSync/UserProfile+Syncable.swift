@@ -11,19 +11,19 @@ import CloudKit
 
 extension UserProfile : Syncable {
         
-    var zoneName: String {
+    var ckZoneName: String {
         get {
             return "UserProfileZone"
         }
     }
     
-    var recordType: String {
+    var ckRecordType: String {
         get {
             return "UserProfiles"
         }
     }
     
-   func setCXRecordData(record: CKRecord) {
+   func updateCKRecord(record: CKRecord) {
         record["name"] = name! as NSString
     }
     

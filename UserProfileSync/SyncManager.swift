@@ -33,11 +33,17 @@ enum SyncManagerMode {
 
 protocol Syncable {
     var uuid:UUID? { get }
-    var recordType:String { get }
-    var zoneName:String { get }
-    var objectID:NSManagedObjectID { get }
+
+    // CloudKit
+    var ckRecordType:String { get }
+    var ckZoneName:String { get }
     var encodedSystemFields:Data? { get set }
-    func setCXRecordData(record:CKRecord)
+
+    // Core data id
+    var objectID:NSManagedObjectID { get }
+
+    // Convert data to / from cloud kit
+    func updateCKRecord(record:CKRecord)
     func setData(record:CKRecord)
 }
 
@@ -73,16 +79,20 @@ class SyncManager {
         }
         
         if let inserts = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject> {
-            addToSyncOperationInserts(managedObjects: inserts)
+            addSyncOperationToInserts(managedObjects: inserts)
         }
     
         if let delets = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject> {
-            addToSyncOperationToDeletes(managedObjects: delets)
+            addSyncOperationToDeletes(managedObjects: delets)
+        }
+
+        self.sync { (result) in
+            
         }
     }
     
     // MARK:- CRUD Operations -
-    func addToSyncOperationToDeletes(managedObjects:Set<NSManagedObject>) {
+    func addSyncOperationToDeletes(managedObjects:Set<NSManagedObject>) {
         
         for case let syncable as Syncable in managedObjects {
 
@@ -98,7 +108,7 @@ class SyncManager {
         try! syncContext.save()
     }
     
-    func addToSyncOperationInserts(managedObjects:Set<NSManagedObject>) {
+    func addSyncOperationToInserts(managedObjects:Set<NSManagedObject>) {
 
         for case let syncable as Syncable in managedObjects {
             
@@ -110,7 +120,6 @@ class SyncManager {
     }
     
     func sync(completition: ((Result<Int>) -> Void)?) {
-        
         
         syncContext.perform {
             
@@ -163,10 +172,10 @@ class SyncManager {
     }
     
     func creaateCKRecordFromSyncable(syncable:Syncable) -> CKRecord {
-        let zoneID = CKRecordZoneID(zoneName: syncable.zoneName, ownerName: CKCurrentUserDefaultName)
+        let zoneID = CKRecordZoneID(zoneName: syncable.ckZoneName, ownerName: CKCurrentUserDefaultName)
         let recordID = CKRecordID(recordName: syncable.uuid!.uuidString, zoneID: zoneID)
-        let record = CKRecord(recordType: syncable.recordType, recordID: recordID)
-        syncable.setCXRecordData(record: record)
+        let record = CKRecord(recordType: syncable.ckRecordType, recordID: recordID)
+        syncable.updateCKRecord(record: record)
         return record
     }
     
